@@ -7,13 +7,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="manzanas.png">
   <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png">
   <link rel="stylesheet" href="admin-dashboard.css" />
-  <!-- Firebase (compat v9) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <!-- Chart.js y XLSX con estilos -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 </head>
 <body class="dash-layout">
   <header class="topbar">
@@ -35,14 +28,30 @@
     <section class="card">
       <h2>Métricas rápidas</h2>
       <div class="kpis">
-        <div class="kpi"><div class="kpi-num" id="kpiTotal">0</div><div class="kpi-label">Leads (filtrados)</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpiNuevos">0</div><div class="kpi-label">Nuevos</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpiRecurrentes">0</div><div class="kpi-label">Recurrentes</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpiVisitas">0</div><div class="kpi-label">Visitas totales</div></div>
-        <div class="kpi"><div class="kpi-num" id="kpiStay">—</div><div class="kpi-label">Permanencia prom. (min)</div></div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiTotal">0</div>
+          <div class="kpi-label">Leads (filtrados)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiNuevos">0</div>
+          <div class="kpi-label">Nuevos</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiRecurrentes">0</div>
+          <div class="kpi-label">Recurrentes</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiVisitas">0</div>
+          <div class="kpi-label">Visitas totales</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-num" id="kpiStay">—</div>
+          <div class="kpi-label">Permanencia prom. (min)</div>
+        </div>
       </div>
     </section>
 
+    <!-- Filtros -->
     <section class="card">
       <h2>Filtros</h2>
       <div class="filters">
@@ -89,17 +98,35 @@
       </div>
     </section>
 
-    <!-- Charts -->
+    <!-- Estadísticas sin gráficas -->
     <section class="card">
-      <h2>Gráficas</h2>
-      <div class="charts grid-2">
-        <canvas id="chVisitsByDay" height="140"></canvas>
-        <canvas id="chSources" height="140"></canvas>
-        <canvas id="chNewVsReturn" height="140"></canvas>
-        <canvas id="chBirthMonths" height="140"></canvas>
+      <h2>Estadísticas</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Visitas por día (últimos 14)</div>
+          <table class="mini-table" id="tVisitsByDay">
+            <thead><tr><th>Día</th><th>Visitas</th></tr></thead>
+            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+          </table>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Leads por fuente</div>
+          <table class="mini-table" id="tSources">
+            <thead><tr><th>Fuente</th><th>Leads</th></tr></thead>
+            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+          </table>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Top clientes frecuentes</div>
+          <table class="mini-table" id="tTopFreq">
+            <thead><tr><th>Nombre / correo</th><th>Visitas</th></tr></thead>
+            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
+    <!-- Resultados -->
     <section class="card">
       <h2>Resultados</h2>
       <div class="table-wrap">
@@ -130,6 +157,15 @@
     </section>
   </main>
 
+  <!-- Firebase (compat v9) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
+
+  <!-- XLSX con estilos (para el Excel) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js" defer></script>
+
+  <!-- Config Firebase -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCun-sPsiEJMphATcHHZ_QFU4y_ZcGThYk",
@@ -141,6 +177,8 @@
       measurementId: "G-K6FJVWCEYK"
     };
   </script>
-  <script src="admin.js"></script>
+
+  <!-- Tu app -->
+  <script src="admin.js" defer></script>
 </body>
 </html>
