@@ -32,7 +32,7 @@
   <!-- Contenido -->
   <main class="card" aria-label="Formulario de acceso de administrador">
     <div class="card__brand">
-      <img src="FondoClaro.png" alt="Logo" class="brand__logo" />
+      <img src="Logotipo3DEstilizado.png" alt="Logo" class="brand__logo" />
       <div class="brand__text">
         <h1 class="brand__title">Panel Admin</h1>
         <p class="brand__subtitle">Accede con tu correo y contraseña</p>
@@ -52,7 +52,7 @@
           <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••" aria-describedby="capsHint" />
           <button type="button" class="password__toggle" aria-label="Mostrar u ocultar contraseña" title="Mostrar/ocultar"></button>
         </div>
-        <small class="hint hint--caps" id="capsHint" hidden>Bloq Mayús activado</small>
+        <small class="hint hint--caps" id="capsHint" hidden></small>
       </div>
 
       <div class="row">
@@ -91,14 +91,34 @@
       pwd.focus();
     });
 
-    // ——— UI: Aviso de Caps Lock
+    // ——— UI: Aviso de Caps Lock (mejorado y confiable)
     const capsHint = document.getElementById('capsHint');
-    function capsHandler(e){
+    let capsOn = false;
+
+    function checkCapsLock(e) {
       const caps = e.getModifierState && e.getModifierState('CapsLock');
-      capsHint.hidden = !caps;
+      capsOn = !!caps;
+      capsHint.hidden = !capsOn;
     }
-    pwd.addEventListener('keyup', capsHandler);
-    pwd.addEventListener('keydown', capsHandler);
+
+    // Detecta mientras se escribe
+    pwd.addEventListener('keydown', checkCapsLock);
+    pwd.addEventListener('keyup', checkCapsLock);
+
+    // Al enfocar, muestra/oculta según último estado conocido
+    pwd.addEventListener('focus', () => {
+      capsHint.hidden = !capsOn;
+    });
+
+    // Al salir del campo, oculta el aviso
+    pwd.addEventListener('blur', () => {
+      capsHint.hidden = true;
+    });
+
+    // Si presionas teclas fuera y vuelves, sincroniza estado mientras el input está activo
+    document.addEventListener('keydown', (e) => {
+      if (document.activeElement === pwd) checkCapsLock(e);
+    });
 
     // ——— Parallax suave en la tarjeta
     const card = document.querySelector('.card');
@@ -163,8 +183,7 @@
       } catch (err) {
         console.error(err);
         card.classList.remove('shake');
-        // Triggerea animación de error
-        void card.offsetWidth; 
+        void card.offsetWidth; // reinicia animación
         card.classList.add('shake');
         statusEl.textContent = 'Error de acceso: ' + (err?.message || 'Intenta de nuevo.');
       } finally {
@@ -172,7 +191,7 @@
       }
     });
 
-    // ——— Link de recuperación (puedes conectar tu flujo real)
+    // ——— Link de recuperación (demo; conecta tu flujo real)
     document.getElementById('restoreDemo').addEventListener('click', (e)=>{
       e.preventDefault();
       statusEl.textContent = 'Si olvidaste tu contraseña, solicita un restablecimiento al administrador.';
