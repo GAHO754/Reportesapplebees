@@ -307,9 +307,25 @@ function renderClientPage(){
 /* ===========================
    Row mapping
 =========================== */
+/* ===========================
+   MAPA DE SUCURSALES
+=========================== */
+
+const SITE_NAMES = {
+  "default": "Sucursal Principal",
+  "apple01": "Applebee's Tecnologico",
+  "apple02": "Applebee's Torres",
+  "apple03": "Applebee's Trunfo"
+
+};
+
 function mapDocToRow(id, d){
+
   const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt instanceof Date ? d.createdAt : null);
   const lastVisit = d.lastVisit?.toDate ? d.lastVisit.toDate() : (createdAt || null);
+
+  const rawSite = d.unifi?.site || d.site || d.store || d.location || '';
+  const siteName = SITE_NAMES[rawSite] || rawSite;
 
   return {
     id,
@@ -319,7 +335,7 @@ function mapDocToRow(id, d){
     birthday: d.birthday || '',
     createdAt,
     source: d.source || '',
-    site: d.unifi?.site || d.site || d.store || d.location || '',
+    site: siteName,
     ap: d.unifi?.ap || d.ap || d.apName || d.broadcastingAp || d.ap_id || '',
     campaign: d.campaign || d.campaignName || '',
     utm_source: d.utm_source || d.utmSource || '',
@@ -332,6 +348,7 @@ function mapDocToRow(id, d){
     visitHistory: Array.isArray(d.visitHistory) ? d.visitHistory : []
   };
 }
+
 
 /* ===========================
    Client Filters
