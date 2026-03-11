@@ -1,3 +1,4 @@
+<!-- admin.html -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -18,7 +19,8 @@
       </div>
     </div>
     <div class="right">
-      <button id="btnExport">Exportar Excel</button>
+      <button id="btnExportPage">Exportar página</button>
+      <button id="btnExportAll">Exportar todo (filtrado)</button>
       <button id="btnLogout" class="ghost">Salir</button>
     </div>
   </header>
@@ -59,14 +61,16 @@
           <label>Búsqueda (nombre/correo/teléfono)</label>
           <input id="q" type="text" placeholder="Buscar…" />
         </div>
-        <div class="filter">
-          <label>Rango de creación</label>
-          <div class="row">
-            <input id="from" type="date" />
-            <span>—</span>
-            <input id="to" type="date" />
-          </div>
+
+      <div class="filter">
+        <label>Rango de creación</label>
+        <div class="row">
+          <input id="from" type="date" />
+          <span>—</span>
+          <input id="to" type="date" />
         </div>
+      </div>
+
         <div class="filter">
           <label>Mes de cumpleaños</label>
           <select id="bmonth">
@@ -79,18 +83,36 @@
             <option value="11">Noviembre</option><option value="12">Diciembre</option>
           </select>
         </div>
+
+        <!-- Segmentación -->
+        <div class="filter">
+          <label>Sucursal / Site</label>
+          <select id="site">
+            <option value="">Todas</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label>Campaña</label>
+          <select id="campaign">
+            <option value="">Todas</option>
+          </select>
+        </div>
         <div class="filter">
           <label>Unificar duplicados</label>
-          <label class="row"><input id="mergeDup" type="checkbox" /> por email/teléfono</label>
+          <label class="row"><input id="mergeDup" type="checkbox" /> por email/teléfono (solo página)</label>
+          <label class="row"><input id="mergeDupGlobal" type="checkbox" /> global (más lento)</label>
         </div>
+
         <div class="filter">
           <label>Solo frecuentes</label>
           <div class="row">
             <input id="freqN" type="number" min="2" step="1" value="2" style="width:80px" />
             <span class="muted">&nbsp;visitas o más</span>
           </div>
-          <label class="row"><input id="onlyFreq" type="checkbox" /> aplicar</label>
+          <label class="row"><input id="onlyFreq" type="checkbox" /> </label>
         </div>
+
         <div class="filter">
           <label>&nbsp;</label>
           <button id="btnApply">Aplicar</button>
@@ -110,10 +132,19 @@
           </table>
         </div>
         <div class="stat-card">
-          <div class="stat-title">Leads por fuente</div>
-          <table class="mini-table" id="tSources">
-            <thead><tr><th>Fuente</th><th>Leads</th></tr></thead>
-            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+          <div class="stat-title">Clientes por sucursal</div>
+          <table class="mini-table" id="tBranches">
+            <thead>
+              <tr>
+                <th>Sucursal</th>
+                <th>Clientes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="2" class="muted">—</td>
+              </tr>
+            </tbody>
           </table>
         </div>
         <div class="stat-card">
@@ -139,13 +170,17 @@
               <th>Cumpleaños</th>
               <th>Creado</th>
               <th>Fuente</th>
+              <th>Site</th>
+              <th>AP</th>
+              <th>Campaña</th>
               <th>Visitas</th>
               <th>Última visita</th>
               <th>Min. última sesión</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="9" class="muted">Sin datos</td></tr>
+            <tr><td colspan="13" class="muted">Sin datos</td></tr>
           </tbody>
         </table>
       </div>
@@ -156,29 +191,61 @@
       </div>
     </section>
   </main>
+  <!-- Modal Ver/Editar -->
+  <div class="modal" id="leadModal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">Detalle de lead</h3>
+        <button id="btnCloseModal" class="ghost">Cerrar</button>
+      </div>
 
-  <!-- Firebase (compat v9) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js" defer></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js" defer></script>
+      <div class="modal-body">
+        <input type="hidden" id="mId" />
 
-  <!-- XLSX con estilos (para el Excel) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js" defer></script>
+        <label>Nombre</label>
+        <input id="mName" type="text" />
 
-  <!-- Config Firebase -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCun-sPsiEJMphATcHHZ_QFU4y_ZcGThYk",
-      authDomain: "wendysunifi.firebaseapp.com",
-      projectId: "wendysunifi",
-      storageBucket: "wendysunifi.firebasestorage.app",
-      messagingSenderId: "507383157033",
-      appId: "1:507383157033:web:24fdab81903e3c5cac6738",
-      measurementId: "G-K6FJVWCEYK"
-    };
-  </script>
+        <label>Correo</label>
+        <input id="mEmail" type="email" />
 
-  <!-- Tu app -->
-  <script src="admin.js" defer></script>
+        <label>Teléfono</label>
+        <input id="mPhone" type="text" />
+
+        <label>Cumpleaños</label>
+        <input id="mBirthday" type="text" placeholder="YYYY-MM-DD" />
+
+        <label>Fuente</label>
+        <input id="mSource" type="text" />
+
+        <label>Sucursal/Site</label>
+        <input id="mSite" type="text" />
+
+        <label>AP</label>
+        <input id="mAp" type="text" />
+
+        <label>Campaña</label>
+        <input id="mCampaign" type="text" />
+
+        <label>UTM</label>
+        <input id="mUtm" type="text" placeholder="source | medium | campaign" />
+      </div>
+
+      <div class="modal-foot">
+        <button id="btnSaveLead">Guardar cambios</button>
+        <button id="btnDeleteLead" class="ghost">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+
+<script src="admin.js?v=1010"></script>
+
+
+
 </body>
 </html>
