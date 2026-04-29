@@ -26,7 +26,6 @@ try {
 const auth = firebase.auth();
 const db   = firebase.firestore();
 
-
 /* ===========================
    UI refs
 =========================== */
@@ -90,15 +89,21 @@ const mCampaign = document.getElementById('mCampaign');
 const mUtm = document.getElementById('mUtm');
 
 let modalEditable = false;
+let AP_MAP = {};
 
 /* ===========================
    Auth + Role
 =========================== */
 auth.onAuthStateChanged(async (user) => {
   if (!user) { location.replace('index.html'); return; }
+
   userEmailEl.textContent = user.email || '';
 
+  // 🔥 AQUI AGREGA ESTO
+  await loadAccessPoints();
+
   try {
+
     const roleDoc = await db.collection('roles').doc(user.uid).get();
     const role = roleDoc.exists ? roleDoc.data().role : null;
     if (role !== 'manager') {
@@ -126,8 +131,8 @@ btnLogout?.addEventListener('click', () => auth.signOut());
 =========================== */
 let pageSize = 10;
 
-let lastDoc = null;         // cursor forward
-let currentRows = [];       // lo visible en tabla (página actual)
+let lastDoc = null;         
+let currentRows = [];       
 
 let kpiUnsub = null;
 
@@ -136,9 +141,7 @@ let globalCache = null;     // {key, rows}
 let clientModeRows = [];    // dataset filtrado global
 let clientPage = 1;
 
-/* ===========================
-   Eventos filtros
-=========================== */
+
 btnApply?.addEventListener('click', async () => {
   lastDoc = null;
   clientModeRows = [];
@@ -176,7 +179,6 @@ function buildQuery(){
 
   return ref.limit(pageSize);
 }
-
 /* ===========================
    Load page (server pagination)
 =========================== */
@@ -202,8 +204,6 @@ async function loadPage(mode = 'forward'){
   const filtered = applyClientFilters(rows);
 
   renderBranches(filtered);
-
-
 
     // duplicados solo página
     const finalRows = mergeDupEl?.checked ? mergeDuplicates(filtered) : filtered;
@@ -239,7 +239,6 @@ btnPrev?.addEventListener('click', () => {
     renderClientPage();
   }
 });
-
 /* ===========================
    Modo global (cargar TODO rango)
 =========================== */
@@ -305,27 +304,51 @@ function renderClientPage(){
 }
 
 /* ===========================
-   Row mapping
-=========================== */
-/* ===========================
    MAPA DE SUCURSALES
 =========================== */
 
-const SITE_NAMES = {
-  "default": "Sucursal Principal",
-  "apple01": "Applebee's Tecnologico",
-  "apple02": "Applebee's Torres",
-  "apple03": "Applebee's Trunfo"
 
-};
 
 function mapDocToRow(id, d){
 
   const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt instanceof Date ? d.createdAt : null);
   const lastVisit = d.lastVisit?.toDate ? d.lastVisit.toDate() : (createdAt || null);
 
-  const rawSite = d.unifi?.site || d.site || d.store || d.location || '';
-  const siteName = SITE_NAMES[rawSite] || rawSite;
+const apRaw = (
+  d.unifi?.ap ||
+  d.unifi?.id ||
+  d.ap ||
+  d.apName ||
+  ''
+).toLowerCase().trim();
+
+let siteName = AP_MAP[apRaw] || null;
+
+if (!siteName) {
+  const rawSite = (
+    d.unifi?.site ||
+    d.site ||
+    d.store ||
+    d.location ||
+    ''
+  ).toLowerCase().trim();
+  
+  siteName = {
+    "default": "Sucursal Principal",
+    "apple01": "Applebee's Tecnologico",
+    "apple02": "Applebee's Torres"
+  }[rawSite] || rawSite || 'Sucursal desconocida';
+}
+
+// 🔥 AJUSTE CRÍTICO (evitar valores vacíos o "default")
+if (!siteName || siteName === 'default') {
+  siteName = 'Sucursal Principal';
+}
+
+// 🧠 DEBUG PRO
+console.log("AP detectado:", apRaw, "→ Sucursal:", siteName);
+
+
 
   return {
     id,
@@ -348,7 +371,6 @@ function mapDocToRow(id, d){
     visitHistory: Array.isArray(d.visitHistory) ? d.visitHistory : []
   };
 }
-
 
 /* ===========================
    Client Filters
@@ -807,157 +829,117 @@ btnExportAll?.addEventListener('click', async () => {
 });
 
 function exportRowsToExcel(rows, label){
-  const toExcelDate = (jsDate) => {
-    if (!jsDate) return null;
-    return (jsDate - new Date(Date.UTC(1899, 11, 30))) / (24*60*60*1000);
-  };
 
   const safe = (v) => (v == null ? '' : String(v));
-  const phoneFmt = (s) => normalizePhone(s);
 
-  // KPIs resumen
+  // KPIs
   const total = rows.length;
   const nuevos = rows.filter(r => (r.visitCount || 1) <= 1).length;
   const recurrentes = total - nuevos;
   const visitasTotales = rows.reduce((s, r) => s + (r.visitCount || 1), 0);
-  const withMinutes = rows.filter(r => typeof r.totalMinutes === 'number' && r.totalMinutes > 0);
-  const stayProm = withMinutes.length
-    ? Math.round(withMinutes.reduce((s,r)=>s+(r.totalMinutes||0),0) / withMinutes.length)
-    : null;
 
-  // Series
+  // =========================
+  // VISITAS POR DÍA
+  // =========================
   const byDay = new Map();
-  const bySource = new Map();
-  for (const r of rows){
+
+  rows.forEach(r => {
     const day = r.createdAt ? r.createdAt.toISOString().slice(0,10) : null;
-    if (day) byDay.set(day, (byDay.get(day)||0) + (r.visitCount || 1));
-    const src = (r.source || 'webform').toLowerCase();
-    bySource.set(src, (bySource.get(src)||0) + 1);
-  }
-  const dayEntries = Array.from(byDay.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
-  const srcEntries = Array.from(bySource.entries()).sort((a,b)=> b[1]-a[1]);
-
-  const HEAD = [
-    'Nombre','Correo','Teléfono','Cumpleaños','Creado','Fuente',
-    'Site','AP','Campaña','UTM Source','UTM Medium','UTM Campaign',
-    'Visitas','Última visita','Min. última sesión'
-  ];
-
-  const wsData = [HEAD, ...rows.map(r => ([
-    safe(r.fullName),
-    safe(r.email),
-    phoneFmt(safe(r.phone)),
-    safe(r.birthday),
-    r.createdAt ? toExcelDate(r.createdAt) : '',
-    safe(r.source || 'webform'),
-    safe(r.site || ''),
-    safe(r.ap || ''),
-    safe(r.campaign || ''),
-    safe(r.utm_source || ''),
-    safe(r.utm_medium || ''),
-    safe(r.utm_campaign || ''),
-    r.visitCount ?? '',
-    r.lastVisit ? toExcelDate(r.lastVisit) : '',
-    (r.lastSessionMinutes != null ? Number(r.lastSessionMinutes) : '')
-  ]))];
-
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFFFF" } },
-    fill: { patternType: "solid", fgColor: { rgb: "FF116E09" } },
-    alignment: { horizontal: "center", vertical: "center" }
-  };
-  const zebra1 = { fill: { patternType: "solid", fgColor: { rgb: "FFF6F7F9" } } };
-  const zebra2 = { fill: { patternType: "solid", fgColor: { rgb: "FFFFFFFF" } } };
-  const borderThin = {
-    top:{style:"thin", color:{rgb:"FFE6EAF2"}},
-    bottom:{style:"thin", color:{rgb:"FFE6EAF2"}},
-    left:{style:"thin", color:{rgb:"FFE6EAF2"}},
-    right:{style:"thin", color:{rgb:"FFE6EAF2"}}
-  };
-
-  ws['!cols'] = [
-    { wch: 26 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 14 },
-    { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 18 },
-    { wch: 10 }, { wch: 18 }, { wch: 18 }
-  ];
-  ws['!rows'] = [{ hpt: 24 }];
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-  const endRow = wsData.length;
-  const endCol = HEAD.length - 1;
-  ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:endRow-1, c:endCol} }) };
-
-  for (let c = 0; c < HEAD.length; c++){
-    const addr = XLSX.utils.encode_cell({r:0, c});
-    ws[addr].s = { ...headerStyle, border: borderThin };
-  }
-
-  for (let r = 1; r < wsData.length; r++){
-    const rowStyle = (r % 2 === 1) ? zebra1 : zebra2;
-    for (let c = 0; c < HEAD.length; c++){
-      const addr = XLSX.utils.encode_cell({r, c});
-      ws[addr] = ws[addr] || { t:'s', v:'' };
-      ws[addr].s = { ...rowStyle, border: borderThin };
-
-      // telefono (col 2)
-      if (c === 2) ws[addr].z = '00000000000';
-
-      // fechas (col 4 y 13)
-      if (c === 4 || c === 13) {
-        if (typeof ws[addr].v === 'number') {
-          ws[addr].t = 'n';
-          ws[addr].z = 'yyyy-mm-dd hh:mm';
-        }
-      }
-      // numéricos
-      if (c === 12 || c === 14) {
-        if (ws[addr].v !== '') ws[addr].t = 'n';
-      }
-      // mailto
-      if (c === 1 && ws[addr].v) {
-        ws[addr].s = { ...ws[addr].s, font: { underline: true, color: { rgb: "FF1264D1" } } };
-        ws[addr].l = { Target: `mailto:${ws[addr].v}` };
-      }
+    if (day){
+      byDay.set(day, (byDay.get(day)||0)+1);
     }
-  }
+  });
 
-  // Resumen
-  const res = [
-    ['REPORTE DE LEADS', null, null, null],
-    [null,null,null,null],
-    ['KPI', 'Valor', null, null],
-    ['Leads (filtrados)', total, null, null],
-    ['Nuevos', nuevos, null, null],
-    ['Recurrentes', recurrentes, null, null],
-    ['Visitas totales', visitasTotales, null, null],
-    ['Permanencia prom. (min)', (stayProm != null ? stayProm : '—'), null, null],
-    [null,null,null,null],
-    ['Visitas por día', null, null, null],
-    ...Array.from(dayEntries, ([d,v]) => [d, v, null, null]),
-    [null,null,null,null],
-    ['Leads por fuente', null, null, null],
-    ...Array.from(srcEntries, ([src, n]) => [src, n, null, null]),
-  ];
-  const ws2 = XLSX.utils.aoa_to_sheet(res);
-  ws2['!cols'] = [{wch:28},{wch:16},{wch:12},{wch:12}];
-  ws2['!rows'] = [{ hpt: 28 }];
+  const visitsByDay = Array.from(byDay.entries());
 
-  ws2['A1'] = { ...(ws2['A1']||{}), s: {
-    font: { bold: true, sz: 16, color: {rgb:"FFFFFFFF"} },
-    fill: { patternType: "solid", fgColor: { rgb: "FF131A2A" } },
-    alignment: { horizontal: "left", vertical: "center" }
-  }};
+  // =========================
+  // TOP CLIENTES
+  // =========================
+  const topClientes = [...rows]
+    .sort((a,b)=> (b.visitCount||0)-(a.visitCount||0))
+    .slice(0,20)
+    .map(r=>[
+      r.fullName || r.email || 'Sin nombre',
+      r.visitCount || 1
+    ]);
 
+  // =========================
+  // SUCURSALES
+  // =========================
+  const byBranch = {};
+  rows.forEach(r=>{
+    const b = r.site || 'Sin sucursal';
+    byBranch[b] = (byBranch[b]||0)+1;
+  });
+
+  const branches = Object.entries(byBranch);
+
+  // =========================
+  // 🔥 FRECUENCIA SEMANAL
+  // =========================
+  const weekly = calcularFrecuenciaSemanal(rows)
+    .map(r => [r.name, r.dias]);
+
+  // =========================
+  // CREAR EXCEL
+  // =========================
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
-  XLSX.utils.book_append_sheet(wb, ws,  'Leads');
 
+  // RESUMEN
+  const resumen = [
+    ['REPORTE DE LEADS'],
+    [],
+    ['Total', total],
+    ['Nuevos', nuevos],
+    ['Recurrentes', recurrentes],
+    ['Visitas totales', visitasTotales]
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), 'Resumen');
+
+  // VISITAS POR DIA
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['Fecha','Visitas'],
+      ...visitsByDay
+    ]),
+    'Visitas por dia'
+  );
+
+  // TOP CLIENTES
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['Cliente','Visitas'],
+      ...topClientes
+    ]),
+    'Top clientes'
+  );
+
+  // SUCURSALES
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['Sucursal','Clientes'],
+      ...branches
+    ]),
+    'Sucursales'
+  );
+
+  // 🔥 FRECUENCIA SEMANAL
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ['Cliente','Dias visitados esta semana'],
+      ...weekly
+    ]),
+    'Frecuencia semanal'
+  );
+
+  // DESCARGA
   const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb, `Leads_${label}_${ts}.xlsx`, { compression: true });
+  XLSX.writeFile(wb, `Reporte_Leads_${label}_${ts}.xlsx`);
 }
-
 /* ===========================
    Utils
 =========================== */
@@ -992,11 +974,109 @@ function setToday() {
   document.getElementById('to').value = today;
 }
 
-fetch("http://localhost:3000/unifi/clients")
-  .then(res => res.json())
-  .then(data => {
-    console.log(data);
-  });
+async function loadClients() {
+  try {
+    const res = await fetch("http://localhost:3000/unifi/clients");
+    const data = await res.json();
+    console.log("Clientes activos:", data);
+  } catch (err) {
+    console.error("Error:", err);
+  }
+}
+
+
+async function loadAccessPoints() {
+  try {
+    const res = await fetch("http://localhost:3000/unifi/aps");
+    const aps = await res.json();
+
+    AP_MAP = {};
+
+    aps.forEach(ap => {
+      // Generamos una llave confiable
+      const keyMac = (ap.mac || '').toLowerCase().trim();
+      const keyName = (ap.name || '').toLowerCase().trim();
+
+      // Nombre de sucursal (lo importante 🔥)
+      const siteName = ap.site_name || ap.site || "Sucursal desconocida";
+    const apName = ap.name || '';
+
+      // Guardar por MAC (más confiable)
+      if (keyMac) {
+        AP_MAP[keyMac] = siteName;
+      }
+
+      if (keyName) {
+        AP_MAP[keyName] = siteName;
+      }
+
+      // 🔥 NUEVO (IMPORTANTE)
+      if (apName) {
+        AP_MAP[apName.toLowerCase().trim()] = siteName;
+      }
+
+    });
+
+    console.log("AP_MAP cargado:", AP_MAP);
+
+  } catch (err) {
+    console.error("Error cargando APs:", err);
+  }
+}
+
+// =============================
+// 🔥 NUEVA FUNCIÓN PRINCIPAL
+// =============================
+function calcularFrecuenciaSemanal(rows){
+
+  const today = new Date();
+  const startWeek = new Date(today);
+  startWeek.setDate(today.getDate() - today.getDay() + 1);
+  startWeek.setHours(0,0,0,0);
+
+  const endWeek = new Date(startWeek);
+  endWeek.setDate(startWeek.getDate() + 6);
+  endWeek.setHours(23,59,59,999);
+
+  return rows.map(r => {
+
+    const dias = new Set();
+
+    if (Array.isArray(r.visitHistory)) {
+
+      r.visitHistory.forEach(v => {
+
+        let date = null;
+
+        if (v?.toDate) date = v.toDate();
+        else if (v instanceof Date) date = v;
+        else if (typeof v === 'string') date = new Date(v);
+
+        if (date && date >= startWeek && date <= endWeek){
+          dias.add(date.toISOString().slice(0,10));
+        }
+
+      });
+
+    } else if (r.lastVisit) {
+
+      if (r.lastVisit >= startWeek && r.lastVisit <= endWeek){
+        dias.add(r.lastVisit.toISOString().slice(0,10));
+      }
+
+    }
+
+    return {
+      name: r.fullName || r.email || r.phone || 'Sin nombre',
+      dias: dias.size,
+      visitas: r.visitCount || 1
+    };
+
+  })
+  .filter(r => r.dias > 0)
+  .sort((a,b)=> b.dias - a.dias || b.visitas - a.visitas)
+  .slice(0,20);
+}
 
 
 function renderBranches(rows){
