@@ -21,6 +21,7 @@
     <div class="right">
       <button id="btnExportPage">Exportar página</button>
       <button id="btnExportAll">Exportar todo (filtrado)</button>
+      <button id="btnExportReports">Descargar reportes</button>
       <button id="btnLogout" class="ghost">Salir</button>
     </div>
   </header>
@@ -121,41 +122,89 @@
     </section>
 
     <!-- Estadísticas sin gráficas -->
-    <section class="card">
-      <h2>Estadísticas</h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-title">Visitas por día (últimos 14)</div>
-          <table class="mini-table" id="tVisitsByDay">
-            <thead><tr><th>Día</th><th>Visitas</th></tr></thead>
-            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
-          </table>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Clientes por sucursal</div>
-          <table class="mini-table" id="tBranches">
-            <thead>
-              <tr>
-                <th>Sucursal</th>
-                <th>Clientes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="2" class="muted">—</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">Top clientes frecuentes</div>
-          <table class="mini-table" id="tTopFreq">
-            <thead><tr><th>Nombre / correo</th><th>Visitas</th></tr></thead>
-            <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+<section class="card">
+  <h2>Estadísticas</h2>
+  <div class="stats-grid">
+
+    <div class="stat-card">
+      <div class="stat-title">Gráfica de visitas por día</div>
+      <canvas id="chartVisitsByDay" height="130"></canvas>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Gráfica de clientes frecuentes</div>
+      <canvas id="chartTopClients" height="130"></canvas>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Clientes con más días visitados esta semana</div>
+      <table class="mini-table" id="tWeeklyFreq">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Días esta semana</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="2" class="muted">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Visitas por día (últimos 14)</div>
+      <table class="mini-table" id="tVisitsByDay">
+        <thead><tr><th>Día</th><th>Visitas</th></tr></thead>
+        <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Clientes por sucursal</div>
+      <table class="mini-table" id="tBranches">
+        <thead>
+          <tr>
+            <th>Sucursal</th>
+            <th>Clientes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="2" class="muted">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 🔥 NUEVO BLOQUE (EL QUE TE FALTABA) -->
+    <div class="stat-card">
+      <div class="stat-title">Leads por fuente</div>
+      <table class="mini-table" id="tSources">
+        <thead>
+          <tr>
+            <th>Fuente</th>
+            <th>Cantidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="2" class="muted">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-title">Top clientes frecuentes</div>
+      <table class="mini-table" id="tTopFreq">
+        <thead><tr><th>Nombre / correo</th><th>Visitas</th></tr></thead>
+        <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+
 
     <!-- Resultados -->
     <section class="card">
@@ -241,9 +290,10 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 
-<script src="admin.js?v=1010"></script>
+<script src="admin.js?v=1011"></script>
 
 
 
