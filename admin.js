@@ -91,6 +91,29 @@ const mUtm = document.getElementById('mUtm');
 let modalEditable = false;
 let AP_MAP = {};
 
+// =============================
+// 🔥 SUCURSALES AUTOMÁTICAS
+// =============================
+function detectarSucursal(raw) {
+
+  const text = (raw || '').toLowerCase();
+
+  if (text.includes('tec') || text.includes('tecnologico') || text.includes('apple01')) {
+    return "Applebee's Tecnologico";
+  }
+
+  if (text.includes('torres') || text.includes('apple02')) {
+    return "Applebee's Torres";
+  }
+
+  if (text.includes('triunfo') || text.includes('apple03')) {
+    return "Applebee's Triunfo";
+  }
+
+  // 🔥 fallback si no detecta nada
+  return "Applebee's Tecnologico";
+}
+
 /* ===========================
    Auth + Role
 =========================== */
@@ -307,8 +330,6 @@ function renderClientPage(){
    MAPA DE SUCURSALES
 =========================== */
 
-
-
 function mapDocToRow(id, d){
 
   const createdAt = d.createdAt?.toDate ? d.createdAt.toDate() : (d.createdAt instanceof Date ? d.createdAt : null);
@@ -322,28 +343,23 @@ const apRaw = (
   ''
 ).toLowerCase().trim();
 
-let siteName = AP_MAP[apRaw] || null;
+// =============================
+// 🔥 NUEVA LÓGICA AUTOMÁTICA
+// =============================
 
-if (!siteName) {
-  const rawSite = (
-    d.unifi?.site ||
-    d.site ||
-    d.store ||
-    d.location ||
-    ''
-  ).toLowerCase().trim();
-  
-  siteName = {
-    "default": "Sucursal Principal",
-    "apple01": "Applebee's Tecnologico",
-    "apple02": "Applebee's Torres"
-  }[rawSite] || rawSite || 'Sucursal desconocida';
-}
+const rawSucursal = (
+  AP_MAP[apRaw] ||
+  d.unifi?.site ||
+  d.site ||
+  d.store ||
+  d.location ||
+  d.ap ||
+  ''
+);
 
-// 🔥 AJUSTE CRÍTICO (evitar valores vacíos o "default")
-if (!siteName || siteName === 'default') {
-  siteName = 'Sucursal Principal';
-}
+let siteName = detectarSucursal(rawSucursal);
+
+
 
 // 🧠 DEBUG PRO
 console.log("AP detectado:", apRaw, "→ Sucursal:", siteName);
