@@ -236,7 +236,7 @@ async function loadPage(mode = 'forward') {
 
     renderBranches(filtered);
 
-    const finalRows = mergeDupEl?.checked ? mergeDuplicates(filtered) : filtered;
+    const finalRows = mergeDuplicates(filtered);
 
     renderRows(finalRows);
     lastDoc = snap.docs[snap.docs.length - 1] || null;
@@ -556,8 +556,7 @@ function subscribeKPIs() {
     snap.forEach(doc => all.push(mapDocToRow(doc.id, doc.data())));
 
     let filtered = applyClientFilters(all);
-
-    if (mergeDupGlobalEl?.checked) filtered = mergeDuplicates(filtered);
+    filtered = mergeDuplicates(filtered);
 
     renderKPIsAndStats(filtered);
     refreshSegmentationOptionsFromRows(all);
@@ -848,9 +847,7 @@ btnExportAll?.addEventListener('click', async () => {
     const all = await loadAllMatchingRows();
     let rowsToExport = applyClientFilters(all);
 
-    if (mergeDupGlobalEl?.checked || mergeDupEl?.checked) {
-      rowsToExport = mergeDuplicates(rowsToExport);
-    }
+    rowsToExport = mergeDuplicates(rowsToExport);
 
     if (rowsToExport.length === 0) {
       return alert('No se encontraron leads en el rango de fechas seleccionado.');
