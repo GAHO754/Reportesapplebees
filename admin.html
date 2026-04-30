@@ -5,11 +5,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin | Leads</title>
+
   <link rel="icon" type="image/png" sizes="16x16" href="manzanas.png">
   <link rel="icon" type="image/png" sizes="32x32" href="manzanas.png">
   <link rel="stylesheet" href="admin-dashboard.css" />
 </head>
+
 <body class="dash-layout">
+
   <header class="topbar">
     <div class="left">
       <img src="Logotipo3DEstilizado.png" alt="Wendy’s" class="logo">
@@ -18,76 +21,87 @@
         <span id="userEmail" class="muted"></span>
       </div>
     </div>
+
     <div class="right">
       <button id="btnExportPage">Exportar página</button>
-      <button id="btnExportAll">Exportar todo (filtrado)</button>
-      <button id="btnExportReports">Descargar reportes</button>
+      <button id="btnExportAll">Exportar todo / reportes</button>
       <button id="btnLogout" class="ghost">Salir</button>
     </div>
   </header>
 
   <main class="grid">
-    <!-- KPIs -->
+
     <section class="card">
       <h2>Métricas rápidas</h2>
+
       <div class="kpis">
         <div class="kpi">
           <div class="kpi-num" id="kpiTotal">0</div>
-          <div class="kpi-label">Leads (filtrados)</div>
+          <div class="kpi-label">Leads filtrados</div>
         </div>
+
         <div class="kpi">
           <div class="kpi-num" id="kpiNuevos">0</div>
           <div class="kpi-label">Nuevos</div>
         </div>
+
         <div class="kpi">
           <div class="kpi-num" id="kpiRecurrentes">0</div>
           <div class="kpi-label">Recurrentes</div>
         </div>
+
         <div class="kpi">
           <div class="kpi-num" id="kpiVisitas">0</div>
           <div class="kpi-label">Visitas totales</div>
         </div>
+
         <div class="kpi">
           <div class="kpi-num" id="kpiStay">—</div>
-          <div class="kpi-label">Permanencia prom. (min)</div>
+          <div class="kpi-label">Permanencia prom. min</div>
         </div>
       </div>
     </section>
 
-    <!-- Filtros -->
     <section class="card">
       <h2>Filtros</h2>
+
       <div class="filters">
+
         <div class="filter">
-          <label>Búsqueda (nombre/correo/teléfono)</label>
-          <input id="q" type="text" placeholder="Buscar…" />
+          <label>Búsqueda</label>
+          <input id="q" type="text" placeholder="Nombre, correo o teléfono" />
         </div>
 
-      <div class="filter">
-        <label>Rango de creación</label>
-        <div class="row">
-          <input id="from" type="date" />
-          <span>—</span>
-          <input id="to" type="date" />
+        <div class="filter">
+          <label>Rango de creación</label>
+          <div class="row">
+            <input id="from" type="date" />
+            <span>—</span>
+            <input id="to" type="date" />
+          </div>
         </div>
-      </div>
 
         <div class="filter">
           <label>Mes de cumpleaños</label>
           <select id="bmonth">
             <option value="">Todos</option>
-            <option value="01">Enero</option><option value="02">Febrero</option>
-            <option value="03">Marzo</option><option value="04">Abril</option>
-            <option value="05">Mayo</option><option value="06">Junio</option>
-            <option value="07">Julio</option><option value="08">Agosto</option>
-            <option value="09">Septiembre</option><option value="10">Octubre</option>
-            <option value="11">Noviembre</option><option value="12">Diciembre</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
           </select>
         </div>
 
-        <!-- Segmentación -->
         <div class="filter">
-          <label>Sucursal / Site</label>
+          <label>Sucursal</label>
           <select id="site">
             <option value="">Todas</option>
           </select>
@@ -99,116 +113,110 @@
             <option value="">Todas</option>
           </select>
         </div>
+
         <div class="filter">
           <label>Unificar duplicados</label>
-          <label class="row"><input id="mergeDup" type="checkbox" /> por email/teléfono (solo página)</label>
-          <label class="row"><input id="mergeDupGlobal" type="checkbox" /> global (más lento)</label>
+          <label class="row">
+            <input id="mergeDup" type="checkbox" />
+            por email/teléfono, solo página
+          </label>
+          <label class="row">
+            <input id="mergeDupGlobal" type="checkbox" />
+            global, más lento
+          </label>
         </div>
 
         <div class="filter">
           <label>Solo frecuentes</label>
           <div class="row">
             <input id="freqN" type="number" min="2" step="1" value="2" style="width:80px" />
-            <span class="muted">&nbsp;visitas o más</span>
+            <span class="muted">visitas o más</span>
           </div>
-          <label class="row"><input id="onlyFreq" type="checkbox" /> </label>
+          <label class="row">
+            <input id="onlyFreq" type="checkbox" />
+            activar
+          </label>
         </div>
 
         <div class="filter">
           <label>&nbsp;</label>
           <button id="btnApply">Aplicar</button>
         </div>
+
       </div>
     </section>
 
-    <!-- Estadísticas sin gráficas -->
-<section class="card">
-  <h2>Estadísticas</h2>
-  <div class="stats-grid">
+    <section class="card">
+      <h2>Estadísticas</h2>
 
-    <div class="stat-card">
-      <div class="stat-title">Gráfica de visitas por día</div>
-      <canvas id="chartVisitsByDay" height="130"></canvas>
-    </div>
+      <div class="stats-grid">
 
-    <div class="stat-card">
-      <div class="stat-title">Gráfica de clientes frecuentes</div>
-      <canvas id="chartTopClients" height="130"></canvas>
-    </div>
+        <div class="stat-card">
+          <div class="stat-title">Visitas por día últimos 14</div>
+          <table class="mini-table" id="tVisitsByDay">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th>Visitas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="2" class="muted">—</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-    <div class="stat-card">
-      <div class="stat-title">Clientes con más días visitados esta semana</div>
-      <table class="mini-table" id="tWeeklyFreq">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Días esta semana</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="2" class="muted">—</td></tr>
-        </tbody>
-      </table>
-    </div>
+        <div class="stat-card">
+          <div class="stat-title">Clientes por sucursal</div>
+          <table class="mini-table" id="tBranches">
+            <thead>
+              <tr>
+                <th>Sucursal</th>
+                <th>Clientes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="2" class="muted">—</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-    <div class="stat-card">
-      <div class="stat-title">Visitas por día (últimos 14)</div>
-      <table class="mini-table" id="tVisitsByDay">
-        <thead><tr><th>Día</th><th>Visitas</th></tr></thead>
-        <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
-      </table>
-    </div>
+        <div class="stat-card">
+          <div class="stat-title">Leads por fuente</div>
+          <table class="mini-table" id="tSources">
+            <thead>
+              <tr>
+                <th>Fuente</th>
+                <th>Cantidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="2" class="muted">—</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-    <div class="stat-card">
-      <div class="stat-title">Clientes por sucursal</div>
-      <table class="mini-table" id="tBranches">
-        <thead>
-          <tr>
-            <th>Sucursal</th>
-            <th>Clientes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="2" class="muted">—</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <div class="stat-card">
+          <div class="stat-title">Top clientes frecuentes</div>
+          <table class="mini-table" id="tTopFreq">
+            <thead>
+              <tr>
+                <th>Nombre / correo</th>
+                <th>Visitas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="2" class="muted">—</td></tr>
+            </tbody>
+          </table>
+        </div>
 
-    <!-- 🔥 NUEVO BLOQUE (EL QUE TE FALTABA) -->
-    <div class="stat-card">
-      <div class="stat-title">Leads por fuente</div>
-      <table class="mini-table" id="tSources">
-        <thead>
-          <tr>
-            <th>Fuente</th>
-            <th>Cantidad</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="2" class="muted">—</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      </div>
+    </section>
 
-    <div class="stat-card">
-      <div class="stat-title">Top clientes frecuentes</div>
-      <table class="mini-table" id="tTopFreq">
-        <thead><tr><th>Nombre / correo</th><th>Visitas</th></tr></thead>
-        <tbody><tr><td colspan="2" class="muted">—</td></tr></tbody>
-      </table>
-    </div>
-
-  </div>
-</section>
-
-
-    <!-- Resultados -->
     <section class="card">
       <h2>Resultados</h2>
+
       <div class="table-wrap">
         <table id="table">
           <thead>
@@ -219,7 +227,7 @@
               <th>Cumpleaños</th>
               <th>Creado</th>
               <th>Fuente</th>
-              <th>Site</th>
+              <th>Sucursal</th>
               <th>AP</th>
               <th>Campaña</th>
               <th>Visitas</th>
@@ -228,21 +236,25 @@
               <th>Acciones</th>
             </tr>
           </thead>
+
           <tbody id="tbody">
             <tr><td colspan="13" class="muted">Sin datos</td></tr>
           </tbody>
         </table>
       </div>
+
       <div class="pager">
         <button id="prevPage" class="ghost">&larr; Anterior</button>
         <span id="pageInfo" class="muted">Página 1</span>
         <button id="nextPage" class="ghost">Siguiente &rarr;</button>
       </div>
     </section>
+
   </main>
-  <!-- Modal Ver/Editar -->
+
   <div class="modal" id="leadModal" style="display:none">
     <div class="modal-card">
+
       <div class="modal-head">
         <h3 id="modalTitle">Detalle de lead</h3>
         <button id="btnCloseModal" class="ghost">Cerrar</button>
@@ -266,7 +278,7 @@
         <label>Fuente</label>
         <input id="mSource" type="text" />
 
-        <label>Sucursal/Site</label>
+        <label>Sucursal</label>
         <input id="mSite" type="text" />
 
         <label>AP</label>
@@ -283,19 +295,17 @@
         <button id="btnSaveLead">Guardar cambios</button>
         <button id="btnDeleteLead" class="ghost">Eliminar</button>
       </div>
+
     </div>
   </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
 
-<script src="admin.js?v=1011"></script>
-
-
+  <script src="admin.js?v=1012"></script>
 
 </body>
 </html>
