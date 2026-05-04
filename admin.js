@@ -127,6 +127,7 @@ function asignarSucursalFijaPorCliente(id, d) {
    Auth + Role
 =========================== */
 auth.onAuthStateChanged(async (user) => {
+  closeModal();
   if (!user) {
     location.replace('index.html');
     return;
@@ -1186,3 +1187,19 @@ function renderVisitsByDayAndBranch(rows) {
     </tr>
   `).join('');
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('leadModal');
+  if (modal) modal.style.display = 'none';
+});
+
+auth.onAuthStateChanged(async (user) => {
+  closeModal();
+
+  if (!user) {
+    location.replace('index.html');
+    return;
+  }
+
+  // resto de tu código...
+});
