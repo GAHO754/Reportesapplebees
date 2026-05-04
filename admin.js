@@ -428,41 +428,67 @@ function mergeDuplicates(list) {
   const byKey = new Map();
 
   for (const r of list) {
-    const key = (r.email || '') || (r.phone || '');
+    const key = (r.email || '') || (r.phone || '') || normalizeSearch(r.fullName || '');
+
+    const visitDay = r.createdAt
+      ? r.createdAt.toISOString().slice(0, 10)
+      : r.lastVisit
+        ? r.lastVisit.toISOString().slice(0, 10)
+        : '';
 
     if (!key) {
-      byKey.set(r.id, r);
+      byKey.set(r.id, {
+        ...r,
+        _visitDays: new Set(visitDay ? [visitDay] : []),
+        visitCount: visitDay ? 1 : 0
+      });
       continue;
     }
 
     if (!byKey.has(key)) {
-      byKey.set(key, { ...r });
+      byKey.set(key, {
+        ...r,
+        _visitDays: new Set(visitDay ? [visitDay] : []),
+        visitCount: visitDay ? 1 : 0
+      });
     } else {
       const a = byKey.get(key);
 
       a.fullName = a.fullName || r.fullName;
+      a.email = a.email || r.email;
+      a.phone = a.phone || r.phone;
       a.source = a.source || r.source;
       a.site = a.site || r.site;
       a.ap = a.ap || r.ap;
       a.campaign = a.campaign || r.campaign;
 
-      a.visitCount = (a.visitCount || 0) + (r.visitCount || 0);
-      a.totalMinutes = (a.totalMinutes || 0) + (r.totalMinutes || 0);
+      if (visitDay) {
+        a._visitDays.add(visitDay);
+      }
+
+      a.visitCount = a._visitDays.size;
 
       const av = a.lastVisit ? a.lastVisit.getTime() : 0;
       const rv = r.lastVisit ? r.lastVisit.getTime() : 0;
 
-      a.lastVisit = av > rv ? a.lastVisit : r.lastVisit;
+      if (rv >= av) {
+        a.lastVisit = r.lastVisit;
+        a.createdAt = r.createdAt || a.createdAt;
 
-      if (rv >= av && r.lastSessionMinutes != null) {
-        a.lastSessionMinutes = r.lastSessionMinutes;
+        if (r.lastSessionMinutes != null) {
+          a.lastSessionMinutes = r.lastSessionMinutes;
+        }
       }
 
+      a.totalMinutes = (a.totalMinutes || 0) + (r.totalMinutes || 0);
       a.visitHistory = [...(a.visitHistory || []), ...(r.visitHistory || [])];
     }
   }
 
-  return Array.from(byKey.values());
+  return Array.from(byKey.values()).map(r => {
+    delete r._visitDays;
+    return r;
+  });
 }
 
 /* ===========================
