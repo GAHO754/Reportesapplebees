@@ -63,6 +63,7 @@ const kpiStay = document.getElementById('kpiStay');
 const tVisitsByDay = document.getElementById('tVisitsByDay')?.querySelector('tbody');
 const tSources = document.getElementById('tSources')?.querySelector('tbody');
 const tTopFreq = document.getElementById('tTopFreq')?.querySelector('tbody');
+const tVisitsByDayBranch = document.getElementById('tVisitsByDayBranch')?.querySelector('tbody');
 
 /* Modal */
 const leadModal = document.getElementById('leadModal');
@@ -161,8 +162,9 @@ btnLogout?.addEventListener('click', () => auth.signOut());
 /* ===========================
    Estado paginación
 =========================== */
-let pageSize = 10;
+let pageSize = 50;
 let lastDoc = null;
+let pageStack = [];
 let currentRows = [];
 let kpiUnsub = null;
 
@@ -212,39 +214,51 @@ function buildQuery() {
 /* ===========================
    Load page
 =========================== */
-async function loadPage(mode = 'forward') {
+async function loadPage(mode = 'reset') {
   if (mergeDupGlobalEl?.checked) return;
 
   setLoading(true);
+
   try {
     let ref = buildQuery();
 
     if (mode === 'reset') {
       lastDoc = null;
+      pageStack = [];
       CLIENTE_SUCURSAL_MAP.clear();
       ref = buildQuery();
     }
 
     if (mode === 'forward' && lastDoc) {
+      pageStack.push(lastDoc);
       ref = ref.startAfter(lastDoc);
+    }
+
+    if (mode === 'back') {
+      pageStack.pop();
+      lastDoc = pageStack.length ? pageStack[pageStack.length - 1] : null;
+
+      ref = buildQuery();
+
+      if (lastDoc) {
+        ref = ref.startAfter(lastDoc);
+      }
     }
 
     const snap = await ref.get();
 
     const rows = snap.docs.map((doc) => mapDocToRow(doc.id, doc.data()));
     const filtered = applyClientFilters(rows);
-
-    renderBranches(filtered);
-
     const finalRows = mergeDuplicates(filtered);
 
     renderRows(finalRows);
+
     lastDoc = snap.docs[snap.docs.length - 1] || null;
 
-    btnPrev.disabled = true;
+    btnPrev.disabled = pageStack.length === 0;
     btnNext.disabled = snap.size < pageSize;
 
-    pageInfo.textContent = `Página (10)`;
+    pageInfo.textContent = `Página ${pageStack.length + 1}`;
   } catch (e) {
     console.error(e);
     alert('Error al cargar datos.');
@@ -252,7 +266,6 @@ async function loadPage(mode = 'forward') {
     setLoading(false);
   }
 }
-
 btnNext?.addEventListener('click', () => {
   if (mergeDupGlobalEl?.checked) {
     clientPage++;
@@ -266,6 +279,8 @@ btnPrev?.addEventListener('click', () => {
   if (mergeDupGlobalEl?.checked) {
     clientPage = Math.max(1, clientPage - 1);
     renderClientPage();
+  } else {
+    loadPage('back');
   }
 });
 
@@ -426,21 +441,18 @@ function applyClientFilters(rows) {
 =========================== */
 function mergeDuplicates(list) {
   const byKey = new Map();
+  const MIN_HOURS_BETWEEN_VISITS = 2;
 
   for (const r of list) {
     const key = (r.email || '') || (r.phone || '') || normalizeSearch(r.fullName || '');
 
-    const visitDay = r.createdAt
-      ? r.createdAt.toISOString().slice(0, 10)
-      : r.lastVisit
-        ? r.lastVisit.toISOString().slice(0, 10)
-        : '';
+    const visitDate = r.createdAt || r.lastVisit || null;
 
     if (!key) {
       byKey.set(r.id, {
         ...r,
-        _visitDays: new Set(visitDay ? [visitDay] : []),
-        visitCount: visitDay ? 1 : 0
+        _validVisits: visitDate ? [visitDate] : [],
+        visitCount: visitDate ? 1 : 0
       });
       continue;
     }
@@ -448,8 +460,8 @@ function mergeDuplicates(list) {
     if (!byKey.has(key)) {
       byKey.set(key, {
         ...r,
-        _visitDays: new Set(visitDay ? [visitDay] : []),
-        visitCount: visitDay ? 1 : 0
+        _validVisits: visitDate ? [visitDate] : [],
+        visitCount: visitDate ? 1 : 0
       });
     } else {
       const a = byKey.get(key);
@@ -462,11 +474,19 @@ function mergeDuplicates(list) {
       a.ap = a.ap || r.ap;
       a.campaign = a.campaign || r.campaign;
 
-      if (visitDay) {
-        a._visitDays.add(visitDay);
+      if (visitDate) {
+        const alreadyCounted = a._validVisits.some(prev => {
+          const diffMs = Math.abs(visitDate.getTime() - prev.getTime());
+          const diffHours = diffMs / (1000 * 60 * 60);
+          return diffHours < MIN_HOURS_BETWEEN_VISITS;
+        });
+
+        if (!alreadyCounted) {
+          a._validVisits.push(visitDate);
+        }
       }
 
-      a.visitCount = a._visitDays.size;
+      a.visitCount = a._validVisits.length;
 
       const av = a.lastVisit ? a.lastVisit.getTime() : 0;
       const rv = r.lastVisit ? r.lastVisit.getTime() : 0;
@@ -486,7 +506,7 @@ function mergeDuplicates(list) {
   }
 
   return Array.from(byKey.values()).map(r => {
-    delete r._visitDays;
+    delete r._validVisits;
     return r;
   });
 }
@@ -631,6 +651,7 @@ function renderKPIsAndStats(rows) {
   fillMiniTable(tTopFreq, topRows);
 
   renderBranches(rows);
+  renderVisitsByDayAndBranch(rows);
 }
 
 function getLastNDays(n) {
@@ -1126,4 +1147,42 @@ function renderBranches(rows) {
         <td>${count}</td>
       </tr>
     `).join("");
+}
+function renderVisitsByDayAndBranch(rows) {
+  if (!tVisitsByDayBranch) return;
+
+  const branches = [
+    "Applebee's Tecnologico",
+    "Applebee's Torres",
+    "Applebee's Triunfo"
+  ];
+
+  const lastDays = getLastNDays(14);
+  const data = {};
+
+  lastDays.forEach(day => {
+    data[day] = {
+      "Applebee's Tecnologico": 0,
+      "Applebee's Torres": 0,
+      "Applebee's Triunfo": 0
+    };
+  });
+
+  rows.forEach(r => {
+    const day = r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null;
+    const site = r.site || '';
+
+    if (day && data[day] && branches.includes(site)) {
+      data[day][site] += 1;
+    }
+  });
+
+  tVisitsByDayBranch.innerHTML = lastDays.map(day => `
+    <tr>
+      <td>${escapeHtml(day)}</td>
+      <td style="text-align:right">${data[day]["Applebee's Tecnologico"]}</td>
+      <td style="text-align:right">${data[day]["Applebee's Torres"]}</td>
+      <td style="text-align:right">${data[day]["Applebee's Triunfo"]}</td>
+    </tr>
+  `).join('');
 }
