@@ -633,7 +633,7 @@ function renderKPIsAndStats(rows) {
 
   for (const r of rows) {
     const day = r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null;
-    if (day) byDay.set(day, (byDay.get(day) || 0) + (r.visitCount || 1));
+    if (day) byDay.set(day, (byDay.get(day) || 0) + 1);
 
     const src = (r.source || 'webform').toLowerCase();
     bySource.set(src, (bySource.get(src) || 0) + 1);
