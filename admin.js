@@ -154,8 +154,7 @@ auth.onAuthStateChanged(async (user) => {
   }
 
   await refreshSegmentationOptions();
-  loadPage('reset');
-  subscribeKPIs();
+subscribeKPIs();
 });
 
 btnLogout?.addEventListener('click', () => auth.signOut());
@@ -174,29 +173,12 @@ let clientModeRows = [];
 let clientPage = 1;
 
 btnApply?.addEventListener('click', async () => {
-  lastDoc = null;
-  clientModeRows = [];
   clientPage = 1;
   globalCache = null;
   CLIENTE_SUCURSAL_MAP.clear();
 
-  if (mergeDupGlobalEl?.checked) {
-    setLoading(true);
-    try {
-      const all = await loadAllMatchingRows();
-      const filtered = applyClientFilters(all);
-      const merged = mergeDuplicates(filtered);
-      renderClientPaged(merged);
-    } finally {
-      setLoading(false);
-    }
-  } else {
-    loadPage('reset');
-  }
-
   subscribeKPIs();
 });
-
 /* ===========================
    Query base
 =========================== */
@@ -267,23 +249,17 @@ async function loadPage(mode = 'reset') {
     setLoading(false);
   }
 }
+
 btnNext?.addEventListener('click', () => {
-  if (mergeDupGlobalEl?.checked) {
-    clientPage++;
-    renderClientPage();
-  } else {
-    loadPage('forward');
-  }
+  clientPage++;
+  renderClientPage();
 });
 
 btnPrev?.addEventListener('click', () => {
-  if (mergeDupGlobalEl?.checked) {
-    clientPage = Math.max(1, clientPage - 1);
-    renderClientPage();
-  } else {
-    loadPage('back');
-  }
+  clientPage = Math.max(1, clientPage - 1);
+  renderClientPage();
 });
+
 
 /* ===========================
    Cargar todo
@@ -594,8 +570,6 @@ function subscribeKPIs() {
   if (fromVal) ref = ref.where('createdAt', '>=', fromVal);
   if (toVal) ref = ref.where('createdAt', '<=', toVal);
 
-  CLIENTE_SUCURSAL_MAP.clear();
-
   kpiUnsub = ref.onSnapshot((snap) => {
     CLIENTE_SUCURSAL_MAP.clear();
 
@@ -605,8 +579,12 @@ function subscribeKPIs() {
     let filtered = applyClientFilters(all);
     filtered = mergeDuplicates(filtered);
 
+    clientModeRows = filtered;
+    clientPage = 1;
+
+    renderClientPage();
     renderKPIsAndStats(filtered);
-    refreshSegmentationOptionsFromRows(all);
+    refreshSegmentationOptionsFromRows(filtered);
   }, (err) => {
     console.error('onSnapshot KPIs', err);
   });
@@ -1193,13 +1171,3 @@ window.addEventListener('DOMContentLoaded', () => {
   if (modal) modal.style.display = 'none';
 });
 
-auth.onAuthStateChanged(async (user) => {
-  closeModal();
-
-  if (!user) {
-    location.replace('index.html');
-    return;
-  }
-
-  // resto de tu código...
-});
