@@ -852,10 +852,41 @@ async function refreshAfterDataChange() {
    Export Excel
 =========================== */
 btnExportPage?.addEventListener('click', () => {
-  if (!currentRows.length) return alert('No hay datos para exportar.');
-  if (!window.XLSX) return alert('No está cargada la librería de Excel.');
 
-  exportRowsToExcel(currentRows, 'Pagina');
+  if (!currentRows.length) {
+    return alert('No hay datos para exportar.');
+  }
+
+  if (!window.XLSX) {
+    return alert('No está cargada la librería Excel.');
+  }
+
+  // 🔥 usa exactamente los mismos datos filtrados
+  // y deduplicados del panel
+
+  let rowsToExport = [...currentRows];
+
+  rowsToExport = mergeDuplicates(rowsToExport);
+
+  const fechaInicio = fromEl?.value || '';
+  const fechaFin = toEl?.value || '';
+
+  let nombreArchivo = '';
+
+  if (fechaInicio && fechaFin) {
+
+    if (fechaInicio === fechaFin) {
+      nombreArchivo = `Leads_Pagina_${fechaInicio}`;
+    } else {
+      nombreArchivo = `Leads_Pagina_${fechaInicio}_al_${fechaFin}`;
+    }
+
+  } else {
+    nombreArchivo = 'Leads_Pagina';
+  }
+
+  exportRowsToExcel(rowsToExport, nombreArchivo);
+
 });
 
 btnExportAll?.addEventListener('click', async () => {
