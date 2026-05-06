@@ -154,7 +154,7 @@ auth.onAuthStateChanged(async (user) => {
   }
 
   await refreshSegmentationOptions();
-subscribeKPIs();
+  subscribeKPIs();
 });
 
 btnLogout?.addEventListener('click', () => auth.signOut());
@@ -186,7 +186,7 @@ function buildQuery() {
   let ref = db.collection('leads').orderBy('createdAt', 'desc');
 
   const fromVal = fromEl?.value ? new Date(fromEl.value + 'T00:00:00') : null;
-  const toVal = toEl?.value ? new Date(toEl.value + 'T23:59:59') : null;
+  const toVal = toEl?.value ? new Date(toEl.value + 'T23:59:59.999') : null;
 
   if (fromVal) ref = ref.where('createdAt', '>=', fromVal);
   if (toVal) ref = ref.where('createdAt', '<=', toVal);
@@ -562,7 +562,7 @@ function subscribeKPIs() {
   let ref = db.collection('leads').orderBy('createdAt', 'desc');
 
   const fromVal = fromEl?.value ? new Date(fromEl.value + 'T00:00:00') : null;
-  const toVal = toEl?.value ? new Date(toEl.value + 'T23:59:59') : null;
+  const toVal = toEl?.value ? new Date(toEl.value + 'T23:59:59.999') : null;
 
   if (fromVal) ref = ref.where('createdAt', '>=', fromVal);
   if (toVal) ref = ref.where('createdAt', '<=', toVal);
@@ -596,11 +596,11 @@ function renderKPIsAndStats(rows) {
   const withMinutes = rows.filter(r => typeof r.totalMinutes === 'number' && r.totalMinutes > 0);
   let stayProm = null;
 
-if (withMinutes.length) {
-  stayProm = Math.round(
-    withMinutes.reduce((s, r) => s + (r.totalMinutes || 0), 0) / withMinutes.length
-  );
-}
+  if (withMinutes.length) {
+    stayProm = Math.round(
+      withMinutes.reduce((s, r) => s + (r.totalMinutes || 0), 0) / withMinutes.length
+    );
+  }
 
   kpiTotal.textContent = total;
   kpiNuevos.textContent = nuevos;
@@ -612,7 +612,7 @@ if (withMinutes.length) {
   const bySource = new Map();
 
   for (const r of rows) {
-    const day = r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null;
+    const day = r.createdAt ? dateKeyLocal(r.createdAt) : null;
     if (day) byDay.set(day, (byDay.get(day) || 0) + 1);
 
     const src = (r.source || 'webform').toLowerCase();
@@ -640,7 +640,7 @@ function getLastNDays(n) {
 
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-    out.push(d.toISOString().slice(0, 10));
+    out.push(dateKeyLocal(d));
   }
 
   return out;
@@ -844,7 +844,7 @@ async function refreshAfterDataChange() {
     }
   } else {
     lastDoc = null;
-    loadPage('reset');
+    subscribeKPIs();
   }
 }
 
@@ -882,11 +882,11 @@ btnExportAll?.addEventListener('click', async () => {
 
     let nombreArchivo = '';
 
-if (fechaInicio === fechaFin) {
-  nombreArchivo = `Leads_Dia_${fechaInicio}`;
-} else {
-  nombreArchivo = `Leads_${fechaInicio}_al_${fechaFin || 'hoy'}`;
-}
+    if (fechaInicio === fechaFin) {
+      nombreArchivo = `Leads_Dia_${fechaInicio}`;
+    } else {
+      nombreArchivo = `Leads_${fechaInicio}_al_${fechaFin || 'hoy'}`;
+    }
 
     exportRowsToExcel(rowsToExport, nombreArchivo);
   } catch (e) {
@@ -905,7 +905,7 @@ function exportRowsToExcel(rows, label) {
 
   const byDay = new Map();
   rows.forEach(r => {
-    const day = r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null;
+    const day = r.createdAt ? dateKeyLocal(r.createdAt) : null;
     if (day) byDay.set(day, (byDay.get(day) || 0) + 1);
   });
 
@@ -992,6 +992,15 @@ function fmtDateTime(d) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+function dateKeyLocal(d) {
+  if (!d) return '';
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, m => ({
@@ -1089,12 +1098,12 @@ function calcularFrecuenciaSemanal(rows) {
         else if (typeof v === 'string') date = new Date(v);
 
         if (date && date >= startWeek && date <= endWeek) {
-          dias.add(date.toISOString().slice(0, 10));
+          dias.add(dateKeyLocal(date));
         }
       });
     } else if (r.lastVisit) {
       if (r.lastVisit >= startWeek && r.lastVisit <= endWeek) {
-        dias.add(r.lastVisit.toISOString().slice(0, 10));
+        dias.add(dateKeyLocal(r.lastVisit));
       }
     }
 
@@ -1153,7 +1162,7 @@ function renderVisitsByDayAndBranch(rows) {
   });
 
   rows.forEach(r => {
-    const day = r.createdAt ? r.createdAt.toISOString().slice(0, 10) : null;
+    const day = r.createdAt ? dateKeyLocal(r.createdAt) : null;
     const site = r.site || '';
 
     if (day && data[day] && branches.includes(site)) {
