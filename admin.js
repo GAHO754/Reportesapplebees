@@ -267,18 +267,13 @@ btnPrev?.addEventListener('click', () => {
 async function loadAllMatchingRows() {
   const fromVal = fromEl?.value || '';
   const toVal = toEl?.value || '';
-  const cacheKey = `data_${fromVal}_${toVal}`;
-
-  if (globalCache?.key === cacheKey && Array.isArray(globalCache.rows)) {
-    return globalCache.rows;
-  }
 
   CLIENTE_SUCURSAL_MAP.clear();
 
   let ref = db.collection('leads').orderBy('createdAt', 'desc');
 
   const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
-  const toDate = toVal ? new Date(toVal + 'T23:59:59') : null;
+  const toDate = toVal ? new Date(toVal + 'T23:59:59.999') : null;
 
   if (fromDate) ref = ref.where('createdAt', '>=', fromDate);
   if (toDate) ref = ref.where('createdAt', '<=', toDate);
@@ -288,24 +283,26 @@ async function loadAllMatchingRows() {
 
   while (true) {
     let q = ref.limit(500);
-    if (cursor) q = q.startAfter(cursor);
+
+    if (cursor) {
+      q = q.startAfter(cursor);
+    }
 
     const snap = await q.get();
+
     if (snap.empty) break;
 
-    snap.forEach(doc => {
+    for (const doc of snap.docs) {
       all.push(mapDocToRow(doc.id, doc.data()));
-    });
+    }
 
     cursor = snap.docs[snap.docs.length - 1];
 
     if (snap.size < 500) break;
   }
 
-  globalCache = { key: cacheKey, rows: all };
   return all;
 }
-
 function renderClientPaged(rows) {
   clientModeRows = rows || [];
   clientPage = 1;
@@ -597,9 +594,13 @@ function renderKPIsAndStats(rows) {
   const visitasTotales = rows.reduce((s, r) => s + (r.visitCount || 1), 0);
 
   const withMinutes = rows.filter(r => typeof r.totalMinutes === 'number' && r.totalMinutes > 0);
-  const stayProm = withMinutes.length
-    ? Math.round(withMinutes.reduce((s, r) => s + (r.totalMinutes || 0), 0) / withMinutes.length)
-    : null;
+  let stayProm = null;
+
+if (withMinutes.length) {
+  stayProm = Math.round(
+    withMinutes.reduce((s, r) => s + (r.totalMinutes || 0), 0) / withMinutes.length
+  );
+}
 
   kpiTotal.textContent = total;
   kpiNuevos.textContent = nuevos;
@@ -879,9 +880,13 @@ btnExportAll?.addEventListener('click', async () => {
       return alert('No se encontraron leads en el rango de fechas seleccionado.');
     }
 
-    const nombreArchivo = (fechaInicio === fechaFin)
-      ? `Leads_Dia_${fechaInicio}`
-      : `Leads_${fechaInicio}_al_${fechaFin || 'hoy'}`;
+    let nombreArchivo = '';
+
+if (fechaInicio === fechaFin) {
+  nombreArchivo = `Leads_Dia_${fechaInicio}`;
+} else {
+  nombreArchivo = `Leads_${fechaInicio}_al_${fechaFin || 'hoy'}`;
+}
 
     exportRowsToExcel(rowsToExport, nombreArchivo);
   } catch (e) {
